@@ -1,22 +1,29 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use std::thread;
 
+pub mod signals;
+use signals::Signals::{*};
+
 pub struct Listener {
-    should_stop: Arc<AtomicBool>,
+    signal: Arc<AtomicU8>,
 }
 
 impl Listener {
-// ##### private area #####
+// ##### PRIVATE AREA #####
     fn run_signal_analyzer(&self) {
         // create ptr as canal between thread and class
-        let should_stop_ptr = Arc::clone(&self.should_stop);
+        let signal_ptr = Arc::clone(&self.signal);
 
-        // create a "handle_checker" thread
-        let _ = thread::spawn(move || {
+        // create thread
+        let signal_analyzer = thread::spawn(move || {
             loop {
                 // check does signal to stop processes come
-                if should_stop_ptr.load(Ordering::Acquire) == true {
+                let should_stop: bool = {
+                    signal_ptr.load(Ordering::Acquire) == ShouldStop.into_num()
+                };
+
+                if should_stop {
                     break;
                 }
                 // have a tiny break
@@ -26,10 +33,10 @@ impl Listener {
     }
 
     fn run_keyboard_listener(&self) {
-        let should_stop_ptr = Arc::clone(&self.should_stop);
+        let signal_ptr = Arc::clone(&self.signal);
         
-        // create a thread "handle_reader"
-        let _ = thread::spawn(move || {
+        // create a thread
+        let keyboard_listener = thread::spawn(move || {
             // rdevListen callback
             let callback = move |event: rdev::Event| {
                 match event.name {
@@ -39,7 +46,7 @@ impl Listener {
                         
                         // exit key ("\u{1b}" = "esc" key code)
                         if key == "\u{1b}" {
-                            should_stop_ptr.store(true, Ordering::Relaxed);
+                            signal_ptr.store(ShouldStop.into_num(), Ordering::Relaxed);
                         }
                     },
                     None => (),
@@ -53,19 +60,26 @@ impl Listener {
 
     fn init(&self) {
         self.run_signal_analyzer();     // analyze various signals (especially "exit")
-        self.run_keyboard_listener();   // keyborad listener
+        self.run_keyboard_listener();   // keyboard listener
     }
 
-// ##### public area #####
+// ##### PUBLIC AREA #####
     pub fn is_stop(&self) -> bool {
-        return self.should_stop.load(Ordering::Acquire);
+        let signal = self.signal.load(Ordering::Acquire);
+        let stop_sign = ShouldStop.into_num();
+        
+        return signal == stop_sign;
     }
 
     // constructor
     pub fn new() -> Self {
+        // init parameter
         let listener = Listener{
-            should_stop: Arc::new(AtomicBool::new(false)),
+            signal: Arc::new(
+                AtomicU8::new(NoSignal.into_num())
+            ),
         };
+        // init other essential
         listener.init();
         return listener;
     }
