@@ -2,22 +2,21 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
-
 pub struct Listener {
     should_stop: Arc<AtomicBool>,
 }
 
 impl Listener {
 // ##### private area #####
-    fn create_checker(&self) {
+    fn run_signal_analyzer(&self) {
+        // create ptr as canal between thread and class
         let should_stop_ptr = Arc::clone(&self.should_stop);
 
         // create a "handle_checker" thread
         let _ = thread::spawn(move || {
-            println!("in loop");
             loop {
+                // check does signal to stop processes come
                 if should_stop_ptr.load(Ordering::Acquire) == true {
-                    println!("log: signal to stop was got");
                     break;
                 }
                 // have a tiny break
@@ -26,38 +25,39 @@ impl Listener {
         });
     }
 
-    fn create_reader(&self) {
+    fn run_keyboard_listener(&self) {
         let should_stop_ptr = Arc::clone(&self.should_stop);
         
         // create a thread "handle_reader"
         let _ = thread::spawn(move || {
+            // rdevListen callback
             let callback = move |event: rdev::Event| {
                 match event.name {
                     Some(key) => {
-                        println!("{:?}", key);  // print what user wrote
-                        if key == "e" {
-                            println!("log: signal to stop was sent");
+                        // print what user wrote
+                        println!("{:?}", key);
+                        
+                        // exit key ("\u{1b}" = "esc" key code)
+                        if key == "\u{1b}" {
                             should_stop_ptr.store(true, Ordering::Relaxed);
                         }
                     },
                     None => (),
                 };
             };
+
             // create rdevListen
-            println!("log: call listener");
             let _ = rdev::listen(callback);     // start rdev::listener thread
-            println!("log: after calling");
         });
     }
 
     fn init(&self) {
-        self.create_checker();
-        self.create_reader();
+        self.run_signal_analyzer();     // analyze various signals (especially "exit")
+        self.run_keyboard_listener();   // keyborad listener
     }
 
 // ##### public area #####
     pub fn is_stop(&self) -> bool {
-        // return self.should_stop;
         return self.should_stop.load(Ordering::Acquire);
     }
 
