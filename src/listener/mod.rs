@@ -48,25 +48,6 @@ impl Listener {
                     event.event_type, 
                     signal_ptr.clone()
                 );
-                
-                // print what user wrote
-                // match event.name {
-                //     Some(key) => println!("{:?}", key),
-                //     None => (),
-                // };
-
-                // update logic
-                // match event.event_type {
-                //     EventType::KeyPress(key) => {
-                //         match key {
-                //             // rdev::Key::KeyA => println!("key {:?} was pressed", Some(event.name)),
-                //             Key::Escape => signal_ptr.store(ShouldStop.into_num(), Ordering::Relaxed),
-                //             _ => ()
-                //         }
-                //     },
-                //     // default
-                //     _ => ()
-                // }
             };
 
             // create rdevListen
@@ -74,16 +55,20 @@ impl Listener {
         });
     }
 
+    // key printer
     fn print_pressed_key(key: Option<String>) {
         match key {
-            Some(key) => println!("{:?}", key),
+            Some(key) => println!("{}", key),
             None => (),
         };
     }
 
+    // work with key press logic
     fn update_logic(event: EventType, signal_ptr: Arc<AtomicU8>) {
+        // find event type
         match event {
             EventType::KeyPress(key) => {
+                // find key
                 match key {
                     Key::Escape => signal_ptr.store(ShouldStop.into_num(), Ordering::Relaxed),
                     _ => ()
