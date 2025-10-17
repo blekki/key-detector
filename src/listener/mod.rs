@@ -3,9 +3,12 @@ use std::sync::Arc;
 use std::thread;
 use std::time;
 
+use rdev::Event;
+
 mod signals;
-use rdev::{Event, EventType, Key};
+mod logic;
 use signals::Signals::{*};
+use logic::Logic;
 
 pub struct Listener {
     signal: Arc<AtomicU8>,
@@ -41,10 +44,10 @@ impl Listener {
         let keyboard_listener = thread::spawn(move || {
             // rdevListen callback
             let callback = move |event: Event| {
-                Listener::print_pressed_key(
+                Logic::print_key_in_console(
                     event.name
                 );
-                Listener::update_logic(
+                Logic::process_event(
                     event.event_type, 
                     signal_ptr.clone()
                 );
@@ -53,29 +56,6 @@ impl Listener {
             // create rdevListen
             let _ = rdev::listen(callback);     // start rdev::listener thread
         });
-    }
-
-    // key printer
-    fn print_pressed_key(key: Option<String>) {
-        match key {
-            Some(key) => println!("{}", key),
-            None => (),
-        };
-    }
-
-    // work with key press logic
-    fn update_logic(event: EventType, signal_ptr: Arc<AtomicU8>) {
-        // find event type
-        match event {
-            EventType::KeyPress(key) => {
-                // find key
-                match key {
-                    Key::Escape => signal_ptr.store(ShouldStop.into_num(), Ordering::Relaxed),
-                    _ => ()
-                }
-            },
-            _ => ()
-        }
     }
 
     fn init(&self) {
