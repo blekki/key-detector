@@ -1,8 +1,10 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use std::thread;
+use std::time;
 
-pub mod signals;
+mod signals;
+use rdev::{Event, EventType, Key};
 use signals::Signals::{*};
 
 pub struct Listener {
@@ -27,7 +29,7 @@ impl Listener {
                     break;
                 }
                 // have a tiny break
-                std::thread::sleep(std::time::Duration::from_millis(50));
+                thread::sleep(time::Duration::from_millis(50));
             }
         });
     }
@@ -38,24 +40,57 @@ impl Listener {
         // create a thread
         let keyboard_listener = thread::spawn(move || {
             // rdevListen callback
-            let callback = move |event: rdev::Event| {
-                match event.name {
-                    Some(key) => {
-                        // print what user wrote
-                        println!("{:?}", key);
-                        
-                        // exit key ("\u{1b}" = "esc" key code)
-                        if key == "\u{1b}" {
-                            signal_ptr.store(ShouldStop.into_num(), Ordering::Relaxed);
-                        }
-                    },
-                    None => (),
-                };
+            let callback = move |event: Event| {
+                Listener::print_pressed_key(
+                    event.name
+                );
+                Listener::update_logic(
+                    event.event_type, 
+                    signal_ptr.clone()
+                );
+                
+                // print what user wrote
+                // match event.name {
+                //     Some(key) => println!("{:?}", key),
+                //     None => (),
+                // };
+
+                // update logic
+                // match event.event_type {
+                //     EventType::KeyPress(key) => {
+                //         match key {
+                //             // rdev::Key::KeyA => println!("key {:?} was pressed", Some(event.name)),
+                //             Key::Escape => signal_ptr.store(ShouldStop.into_num(), Ordering::Relaxed),
+                //             _ => ()
+                //         }
+                //     },
+                //     // default
+                //     _ => ()
+                // }
             };
 
             // create rdevListen
             let _ = rdev::listen(callback);     // start rdev::listener thread
         });
+    }
+
+    fn print_pressed_key(key: Option<String>) {
+        match key {
+            Some(key) => println!("{:?}", key),
+            None => (),
+        };
+    }
+
+    fn update_logic(event: EventType, signal_ptr: Arc<AtomicU8>) {
+        match event {
+            EventType::KeyPress(key) => {
+                match key {
+                    Key::Escape => signal_ptr.store(ShouldStop.into_num(), Ordering::Relaxed),
+                    _ => ()
+                }
+            },
+            _ => ()
+        }
     }
 
     fn init(&self) {

@@ -1,4 +1,5 @@
 use std::thread;
+use std::time;
 
 mod listener;
 
@@ -11,11 +12,11 @@ fn main() {
     loop {
 
         if listener.is_stop() { 
-            break; 
+            break;
         }
         // take a break (free CPU to work with other processes)
         else {
-            thread::sleep(std::time::Duration::from_millis(50));
+            thread::sleep(time::Duration::from_millis(50));
         }
         
     }
