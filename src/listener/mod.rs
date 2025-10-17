@@ -23,14 +23,14 @@ impl Listener {
         // create thread
         let signal_analyzer = thread::spawn(move || {
             loop {
-                // check does signal to stop processes come
-                let should_stop: bool = {
-                    signal_ptr.load(Ordering::Acquire) == ShouldStop.into_num()
-                };
-
-                if should_stop {
+                let signal_copy = signal_ptr.load(Ordering::Acquire);
+                
+                if signal_copy == ShouldStop.as_num() {
                     break;
+                } else if signal_copy == HelloWorld.as_num() {
+                    println!("Hello World!!!");    
                 }
+
                 // have a tiny break
                 thread::sleep(time::Duration::from_millis(50));
             }
@@ -48,7 +48,7 @@ impl Listener {
                     event.name
                 );
                 Logic::process_event(
-                    event.event_type, 
+                    event.event_type,
                     signal_ptr.clone()
                 );
             };
@@ -66,7 +66,7 @@ impl Listener {
 // ##### PUBLIC AREA #####
     pub fn is_stop(&self) -> bool {
         let signal = self.signal.load(Ordering::Acquire);
-        let stop_sign = ShouldStop.into_num();
+        let stop_sign = ShouldStop.as_num();
         
         return signal == stop_sign;
     }
@@ -76,7 +76,7 @@ impl Listener {
         // init parameter
         let listener = Listener{
             signal: Arc::new(
-                AtomicU8::new(NoSignal.into_num())
+                AtomicU8::new(NoSignal.as_num())
             ),
         };
         // init other essential
