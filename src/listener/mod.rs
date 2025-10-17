@@ -20,8 +20,8 @@ impl Listener {
         // create ptr as canal between thread and class
         let signal_ptr = Arc::clone(&self.signal);
 
-        // create thread
-        let signal_analyzer = thread::spawn(move || {
+        // create a "signal_analyzer" thread
+        let _ = thread::spawn(move || {
             loop {
                 let signal_copy = signal_ptr.load(Ordering::Acquire);
                 
@@ -40,8 +40,8 @@ impl Listener {
     fn run_keyboard_listener(&self) {
         let signal_ptr = Arc::clone(&self.signal);
         
-        // create a thread
-        let keyboard_listener = thread::spawn(move || {
+        // create a "keyboard_listener" thread
+        let _ = thread::spawn(move || {
             // rdevListen callback
             let callback = move |event: Event| {
                 Logic::print_key_in_console(

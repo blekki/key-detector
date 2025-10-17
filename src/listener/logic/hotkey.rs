@@ -1,6 +1,8 @@
+use std::sync::atomic::{AtomicU16, Ordering};
 use super::super::signals::{Signals, Signals::*};
 
-static mut COMBINATION: u16 = 0x0;  // pressed keys combination
+// pressed keys combination
+static COMBINATION: AtomicU16 = AtomicU16::new(0x0);
 
 #[derive(Copy, Clone)]  // auto copy/clone
 #[derive(PartialEq)]    // != operator realization
@@ -14,39 +16,31 @@ pub enum HotKey {
 }
 
 impl HotKey {
-// ##### PRIVATE AREA #####
-
 // ##### PUBLIC AREA #####
     pub fn get_hotkey_signal() -> Signals {
         let signal: Signals;
-        unsafe {
-            let copy = COMBINATION;
-            
-            // todo: make special set list
-            // ps: hk = hotkeys
-            const _SHOULD_STOP: u16 = HotKey::Escape as u16;
-            const _HELLO_WORLD: u16 = (HotKey::KeyQ as u16) | (HotKey::KeyC as u16);
+        let copy = COMBINATION.load(Ordering::Acquire);
+        
+        // todo: make special set list
+        // ps: hk = hotkeys
+        const _SHOULD_STOP: u16 = HotKey::Escape as u16;
+        const _HELLO_WORLD: u16 = (HotKey::KeyQ as u16) | (HotKey::KeyC as u16);
 
-            // checking
-            match copy {
-                _SHOULD_STOP=> signal = ShouldStop,
-                _HELLO_WORLD=> signal = HelloWorld,
-                _ => signal = NoSignal
-            }
+        // checking
+        match copy {
+            _SHOULD_STOP=> signal = ShouldStop,
+            _HELLO_WORLD=> signal = HelloWorld,
+            _ => signal = NoSignal
         }
         return signal;
     }
 
     pub fn press_key(&self) {
-        unsafe {
-            COMBINATION |= *self as u16;
-        };
+        COMBINATION.fetch_or(*self as u16, Ordering::Release);
     }
 
     pub fn release_key(&self) {
-        unsafe {
-            COMBINATION ^= *self as u16;
-        };
+        COMBINATION.fetch_xor(*self as u16, Ordering::Release);
     }
 
     // todo: remove or use as log and debug
@@ -56,5 +50,4 @@ impl HotKey {
     //         println!("combination {:08b}", copy);
     //     };
     // }
-
 }
