@@ -7,12 +7,12 @@ static COMBINATION: AtomicU16 = AtomicU16::new(0x0);
 #[derive(Copy, Clone)]  // auto copy/clone
 #[derive(PartialEq)]    // != operator realization
 pub enum HotKey {
-    NoKey = 0b0,
-    Escape = 0b01,
-    ControlLeft = 0b010,
-    ShiftLeft = 0b0100,
-    KeyQ    = 0b1000,
-    KeyC    = 0b10000,
+    NoComponent     = 0b0,
+    Escape          = 0b1,
+    ControlLeft     = 0b10,
+    ShiftLeft       = 0b100,
+    KeyQ            = 0b1000,
+    KeyC            = 0b10000,
 }
 
 impl HotKey {
@@ -32,6 +32,7 @@ impl HotKey {
             _HELLO_WORLD=> signal = HelloWorld,
             _ => signal = NoSignal
         }
+
         return signal;
     }
 
@@ -44,10 +45,8 @@ impl HotKey {
     }
 
     // todo: remove or use as log and debug
-    // pub fn print() {
-    //     unsafe {
-    //         let copy = COMBINATION; // use for higher safety
-    //         println!("combination {:08b}", copy);
-    //     };
-    // }
+    pub fn print() {
+        let copy = COMBINATION.load(Ordering::Acquire); // use for higher safety
+        println!("combination: {:b}", copy);
+    }
 }
