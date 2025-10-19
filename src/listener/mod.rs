@@ -12,6 +12,7 @@ use logic::Logic;
 
 pub struct Listener {
     signal: Arc<AtomicU8>,
+    logic: Logic,
 }
 
 impl Listener {
@@ -26,7 +27,8 @@ impl Listener {
                 let signal_copy = signal_ptr.load(Ordering::Acquire);
                 
                 if signal_copy == ShouldStop.as_num() {
-                    break;
+                    
+                    break; // stop current thread
                 } else if signal_copy == HelloWorld.as_num() {
                     println!("Hello World!!!");    
                 }
@@ -40,10 +42,23 @@ impl Listener {
     fn run_keyboard_listener(&self) {
         let signal_ptr = Arc::clone(&self.signal);
         
+        // try to run logger
+        let try_to_run = self.logic.logger_start();
+        // if something goes wrong, stop processes
+        match try_to_run {
+            Ok(_) => (),
+            Err(msg) => {
+                println!("{}", msg);
+                return;
+            },
+        }
+
         // create a "keyboard_listener" thread
+        let logic_ptr = Arc::new(self.logic.clone());
         let _ = thread::spawn(move || {
             // rdevListen callback
             let callback = move |event: Event| {
+                logic_ptr.log_key();
                 Logic::print_key_in_console(
                     event.name
                 );
@@ -78,6 +93,7 @@ impl Listener {
             signal: Arc::new(
                 AtomicU8::new(NoSignal.as_num())
             ),
+            logic: Logic::new(),
         };
         // init other essential
         listener.init();

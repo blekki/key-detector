@@ -1,16 +1,33 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
+use std::io::Error;
 
 use rdev::{EventType, Key};
 
 use crate::listener::logic::hotkey::HotKey;
 use super::signals::Signals::{*};
-mod hotkey;
+use logger::Logger;
 
-pub struct Logic;
+mod hotkey;
+mod logger;
+
+
+#[derive(Clone)]  // auto copy/clone
+pub struct Logic {
+    logger: Logger
+}
 
 impl Logic {
 // ##### PUBLIC AREA #####
+    // add key to the log list
+    pub fn logger_start(&self) -> Result<String, Error> {
+        return self.logger.start();
+    }
+
+    pub fn log_key(&self) {
+        self.logger.log_key();
+    }
+
     // key printer
     pub fn print_key_in_console(key: Option<String>) {
         match key {
@@ -61,4 +78,14 @@ impl Logic {
             _ => ()
         }
     }
+
+    // constructor
+    pub fn new() -> Logic {
+        // init all parameters
+        Logic {
+            logger: Logger::new()
+        }
+    }
+    
+    
 }
