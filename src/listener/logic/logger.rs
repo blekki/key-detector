@@ -11,7 +11,7 @@ const DEFAULT_PATH: &str = "src/logs/list.log";
 #[derive(Clone)]  // auto copy/clone
 pub struct Logger {
     file_path: String,
-    log_id: Arc<AtomicU32>,
+    next_log_id: Arc<AtomicU32>,
     logs: Arc<Mutex<Vec<String>>>,
 }
 
@@ -24,7 +24,7 @@ impl Logger {
         let time = prelude::Utc::now();
         let formatted_time = time.format("[%H:%M:%S.%3f]: ").to_string();
         let formatted_id = format!(
-            "{}, ", self.log_id.load(Ordering::Acquire)
+            "{}, ", self.next_log_id.load(Ordering::Acquire)
         );
         let formatted_key = format!(
             "\'{}\'\n", key_name
@@ -45,7 +45,7 @@ impl Logger {
         guard.push(log_line);
 
         // update log id
-        self.log_id.fetch_add(1, Ordering::Release);
+        self.next_log_id.fetch_add(1, Ordering::Release);
     }
 
     pub fn start(&self) -> Result<String, Error> {
@@ -92,7 +92,7 @@ impl Logger {
     pub fn new() -> Logger {
         Logger {
             file_path: String::from(DEFAULT_PATH),
-            log_id:    Arc::new(AtomicU32::new(0)),
+            next_log_id:    Arc::new(AtomicU32::new(0)),
             logs:      Arc::new(Mutex::new(vec![])),
         }
     }
