@@ -25,8 +25,33 @@ impl Logic {
     }
 
     pub fn log_key(&self, event: Event) {
-        if event.name.is_some() {
-            self.logger.log_key(event.name.unwrap());
+        // This method is a key name adapter.
+        // If a pressed key is standard one, save it without changes.
+        // If it's a special key (as Shift, Fn, F1 etc), 
+        // convert name, for example, from "\u{1b}" to the "Esc".
+
+        match event.event_type {
+            EventType::KeyPress(key) => {
+                let key_name = match key {
+                    // !!!
+                    // This list need update after getting
+                    // statistics of the most usable keys
+                    
+                    Key::Space          => "Space".to_string(),
+                    Key::Backspace      => "Backspace".to_string(),
+                    Key::ShiftLeft      => "Left Shift".to_string(),
+                    Key::ControlLeft    => "Left Ctrl".to_string(),
+                    Key::Alt            => "Alt".to_string(),
+                    Key::Tab            => "Tab".to_string(),
+                    Key::CapsLock       => "CapsLock".to_string(),
+                    Key::Escape         => "Esc".to_string(),
+                    Key::ControlRight   => "Right Ctrl".to_string(),
+                    Key::ShiftRight     => "Right Shift".to_string(),
+                    _ => format!("{:?}", key),
+                };
+                self.logger.log_key(key_name.as_str());
+            }
+            _ => () // do nothing
         }
     }
 
@@ -59,6 +84,7 @@ impl Logic {
         // find event type
         match event {
             EventType::KeyPress(key) => {
+
                 let comp: HotKey = as_hotkey_component(key);
                 if comp != HotKey::NoComponent {
                     comp.press_key();

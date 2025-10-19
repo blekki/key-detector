@@ -25,21 +25,16 @@ impl Logger {
 
         // create a "log_writer" thread
         let _ = thread::spawn(move || {
-            // write logs in file
             loop {
-                // wait until logs be more
-                thread::sleep(std::time::Duration::from_secs(3));
+                thread::sleep(std::time::Duration::from_secs(3)); // wait until logs be more
 
-                // save logs in BufWritter as u8 (chars) 
+                // save logs in BufWritter as u8 (chars). It's saves to much time consuming
                 let mut guard =  logs_ptr.lock().unwrap();
-
                 for _ in 0..guard.len() {
                     let _ = writer.write_all(guard[0].as_bytes());
                     guard.remove(0);
                 }
-
-                //print all in file
-                let _ = writer.flush();
+                let _ = writer.flush(); // write all in file
                 println!("log saved");
 
                 // !!!
@@ -51,7 +46,7 @@ impl Logger {
 
 
 // ##### PUBLIC AREA #####
-    pub fn log_key(&self, key_name: String) {
+    pub fn log_key(&self, key_name: &str) {
         // create log parts
         let time = prelude::Utc::now();
         let formatted_time = time.format("[%H:%M:%S.%3f]: ").to_string();
