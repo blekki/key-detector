@@ -18,6 +18,38 @@ pub struct Logger {
 impl Logger {
     // todo: need add comfortable interface for using logger
 
+// ##### PRIVATE AREA #####
+    fn run_log_writter(&self, file: File) {
+        let logs_ptr = self.logs.clone();
+        let mut writer = BufWriter::new(file);
+
+        // create a "log_writer" thread
+        let _ = thread::spawn(move || {
+            // write logs in file
+            loop {
+                // wait until logs be more
+                thread::sleep(std::time::Duration::from_secs(3));
+
+                // save logs in BufWritter as u8 (chars) 
+                let mut guard =  logs_ptr.lock().unwrap();
+
+                for _ in 0..guard.len() {
+                    let _ = writer.write_all(guard[0].as_bytes());
+                    guard.remove(0);
+                }
+
+                //print all in file
+                let _ = writer.flush();
+                println!("log saved");
+
+                // !!!
+                // todo: when system decided shutdown,
+                // this thread must save other logs and stop
+            }
+        });
+    }
+
+
 // ##### PUBLIC AREA #####
     pub fn log_key(&self, key_name: String) {
         // create log parts
@@ -54,34 +86,11 @@ impl Logger {
         // if everything is ok, run logger
         match file {
             Ok(file) => {
-                let logs_ptr = self.logs.clone();
-                let mut writer = BufWriter::new(file);
+                // start write logs in the log-file
+                // (works such a thread)
+                self.run_log_writter(file);
 
-                // create a "log_writer" thread
-                let _ = thread::spawn(move || {
-                    // write logs in file
-                    loop {
-                        // wait until logs be more
-                        thread::sleep(std::time::Duration::from_secs(3));
-
-                        // save logs in BufWritter as u8 (chars) 
-                        let mut guard =  logs_ptr.lock().unwrap();
-
-                        for _ in 0..guard.len() {
-                            let _ = writer.write_all(guard[0].as_bytes());
-                            guard.remove(0);
-                        }
-
-                        //print all in file
-                        let _ = writer.flush();
-                        println!("log saved");
-
-                        // !!!
-                        // todo: when system decided shutdown,
-                        // this thread must save other logs and stop
-                    }
-                });
-                
+                // return msg "everything is ok"
                 return Ok(String::from("File found"));
             },
             Err(err) => return Err(err),
