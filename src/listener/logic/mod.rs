@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use std::io::Error;
 
-use rdev::{EventType, Key};
+use rdev::{Event, EventType, Key};
 
 use crate::listener::logic::hotkey::HotKey;
 use super::signals::Signals::{*};
@@ -24,8 +24,10 @@ impl Logic {
         return self.logger.start();
     }
 
-    pub fn log_key(&self) {
-        self.logger.log_key();
+    pub fn log_key(&self, event: Event) {
+        if event.name.is_some() {
+            self.logger.log_key(event.name.unwrap());
+        }
     }
 
     // key printer

@@ -58,12 +58,17 @@ impl Listener {
         let _ = thread::spawn(move || {
             // rdevListen callback
             let callback = move |event: Event| {
-                logic_ptr.log_key();
+                // Comment: need to use clones, because the "Logic"
+                // uses the threads
+
+                logic_ptr.log_key(
+                    event.clone()
+                );
                 Logic::print_key_in_console(
-                    event.name
+                    event.name.clone()
                 );
                 Logic::process_event(
-                    event.event_type,
+                    event.event_type.clone(),
                     signal_ptr.clone()
                 );
             };
