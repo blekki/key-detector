@@ -18,7 +18,6 @@ pub enum HotKey {
 impl HotKey {
 // ##### PUBLIC AREA #####
     pub fn get_hotkey_signal() -> Signals {
-        let signal: Signals;
         let copy = COMBINATION.load(Ordering::Acquire);
         
         // todo: make special set list
@@ -27,11 +26,11 @@ impl HotKey {
         const _HELLO_WORLD: u16 = (HotKey::KeyQ as u16) | (HotKey::KeyC as u16);
 
         // checking
-        match copy {
-            _SHOULD_STOP=> signal = ShouldStop,
-            _HELLO_WORLD=> signal = HelloWorld,
-            _ => signal = NoSignal
-        }
+        let signal: Signals = match copy {
+            _SHOULD_STOP=> ShouldStop,
+            _HELLO_WORLD=> HelloWorld,
+            _ => NoSignal
+        };
 
         return signal;
     }
