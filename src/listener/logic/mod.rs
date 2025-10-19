@@ -32,23 +32,7 @@ impl Logic {
 
         match event.event_type {
             EventType::KeyPress(key) => {
-                let key_name = match key {
-                    // !!!
-                    // This list need update after getting
-                    // statistics of the most usable keys
-                    
-                    Key::Space          => "Space".to_string(),
-                    Key::Backspace      => "Backspace".to_string(),
-                    Key::ShiftLeft      => "Left Shift".to_string(),
-                    Key::ControlLeft    => "Left Ctrl".to_string(),
-                    Key::Alt            => "Alt".to_string(),
-                    Key::Tab            => "Tab".to_string(),
-                    Key::CapsLock       => "CapsLock".to_string(),
-                    Key::Escape         => "Esc".to_string(),
-                    Key::ControlRight   => "Right Ctrl".to_string(),
-                    Key::ShiftRight     => "Right Shift".to_string(),
-                    _ => format!("{:?}", key),
-                };
+                let key_name = format!("{:?}", key);
                 self.logger.log_key(key_name.as_str());
             }
             _ => () // do nothing
