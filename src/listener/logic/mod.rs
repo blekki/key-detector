@@ -25,11 +25,7 @@ impl Logic {
     }
 
     pub fn log_key(&self, event: Event) {
-        // This method is a key name adapter.
-        // If a pressed key is standard one, save it without changes.
-        // If it's a special key (as Shift, Fn, F1 etc), 
-        // convert name, for example, from "\u{1b}" to the "Esc".
-
+        // get a pressed key name and after send it to the logger
         match event.event_type {
             EventType::KeyPress(key) => {
                 let key_name = format!("{:?}", key);
