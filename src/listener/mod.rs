@@ -12,30 +12,49 @@ use logic::Logic;
 
 pub struct Listener {
     signal: Arc<AtomicU8>,
-    logic: Logic,
+    logic: Arc<Logic>,
 }
 
 impl Listener {
 // ##### PRIVATE AREA #####
     fn run_signal_analyzer(&self) {
         // create ptr as canal between thread and class
-        let signal_ptr = Arc::clone(&self.signal);
+
+        let signal_ptr= self.signal.clone();
+        let logic_ptr= self.logic.clone();
 
         // create a "signal_analyzer" thread
         let _ = thread::spawn(move || {
             loop {
-                let signal_copy = signal_ptr.load(Ordering::Acquire);
+                let signal_state = signal_ptr.load(Ordering::Acquire);
+
+                // Comment: Here better use if..else..if..else structure then match
                 
-                if signal_copy == ShouldStop.as_num() {
-                    
-                    break; // stop current thread
-                } else if signal_copy == HelloWorld.as_num() {
-                    println!("Hello World!!!");    
+                if signal_state == NoSignal.as_num() {
+                    // do nothing
+                    continue;
+                } else if signal_state == ShouldStop.as_num() {
+                    // stop all internal systems
+                    logic_ptr.shoutdown();
+                    println!("[signal_analyzer]: Logic shoutdown");
+
+                    break;
+                } else if signal_state == HelloWorld.as_num() {
+                    println!("Hello World!!!");
                 }
+                
+                // reset signal
+                signal_ptr.store(NoSignal.as_num(), Ordering::Release);
 
                 // have a tiny break
                 thread::sleep(time::Duration::from_millis(50));
             }
+
+            // signal to the Listener, it can be completely stopped
+            signal_ptr.store(
+                AllSystemsIsStopped.as_num(), 
+                Ordering::Release
+            );
         });
     }
 
@@ -54,7 +73,7 @@ impl Listener {
         }
 
         // create a "keyboard_listener" thread
-        let logic_ptr = Arc::new(self.logic.clone());
+        let logic_ptr = Arc::clone(&self.logic);
         let _ = thread::spawn(move || {
             // rdevListen callback
             let callback = move |event: Event| {
@@ -64,10 +83,10 @@ impl Listener {
                 logic_ptr.log_key(
                     event.clone()
                 );
-                Logic::print_key_in_console(
+                logic_ptr.print_key_in_console(
                     event.name.clone()
                 );
-                Logic::process_event(
+                logic_ptr.process_event(
                     event.event_type.clone(),
                     signal_ptr.clone()
                 );
@@ -86,9 +105,9 @@ impl Listener {
 // ##### PUBLIC AREA #####
     pub fn is_stop(&self) -> bool {
         let signal = self.signal.load(Ordering::Acquire);
-        let stop_sign = ShouldStop.as_num();
-        
-        return signal == stop_sign;
+        let systems_stopped = AllSystemsIsStopped.as_num(); // signal
+
+        return signal == systems_stopped;
     }
 
     // constructor
@@ -98,7 +117,7 @@ impl Listener {
             signal: Arc::new(
                 AtomicU8::new(NoSignal.as_num())
             ),
-            logic: Logic::new(),
+            logic: Arc::new(Logic::new()),
         };
         // init other essential
         listener.init();

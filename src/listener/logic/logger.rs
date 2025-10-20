@@ -1,10 +1,12 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU8, AtomicU32, Ordering};
 use std::sync::{Mutex, Arc};
 use std::thread;
 use std::fs::File;
 use std::io::{BufWriter, Write, Error};
 
 use chrono::{*};
+
+use super::super::signals::Signals::{*};
 
 const DEFAULT_PATH: &str = "src/logs/list.log";
 
@@ -13,6 +15,8 @@ pub struct Logger {
     file_path: String,
     next_log_id: Arc<AtomicU32>,
     logs: Arc<Mutex<Vec<String>>>,
+
+    signal: Arc<AtomicU8>,
 }
 
 impl Logger {
@@ -23,20 +27,32 @@ impl Logger {
         let logs_ptr = self.logs.clone();
         let mut writer = BufWriter::new(file);
 
+        let signal_clone = Arc::clone(&self.signal);
+
         // create a "log_writer" thread
         let _ = thread::spawn(move || {
             loop {
                 thread::sleep(std::time::Duration::from_secs(3)); // wait until logs be more
 
                 // save logs in BufWritter as u8 (chars). It's saves to much time consuming
-                let mut guard =  logs_ptr.lock().unwrap();
+                let mut guard = logs_ptr.lock().unwrap();
                 for _ in 0..guard.len() {
                     let _ = writer.write_all(guard[0].as_bytes());
                     guard.remove(0);
                 }
                 let _ = writer.flush(); // write all in file
-                println!("log saved");
+                println!("[logger] logs are saved");
 
+                // did signal to stop come
+                let ready_to_stop = {
+                    signal_clone.load(Ordering::Acquire) == StopLogger.as_num()
+                };
+                if ready_to_stop {
+                    // todo: write other logs
+                    println!("logger stopped");
+                    signal_clone.store(LoggerReadyShoutdown.as_num(), Ordering::Release);
+                    break;
+                }
                 // !!!
                 // todo: when system decided shutdown,
                 // this thread must save other logs and stop
@@ -46,6 +62,16 @@ impl Logger {
 
 
 // ##### PUBLIC AREA #####
+    pub fn shoutdown(&self) {
+        self.signal.store(StopLogger.as_num(), Ordering::Release);
+        
+        // wait until all processes stopped
+        while self.signal.load(Ordering::Acquire) != LoggerReadyShoutdown.as_num() {
+            println!("[logger]: waiting");
+            thread::sleep(std::time::Duration::from_secs(1));
+        }
+    }
+
     pub fn log_key(&self, key_name: &str) {
         // create log parts
         let time = prelude::Utc::now();
@@ -95,9 +121,10 @@ impl Logger {
 // constructor
     pub fn new() -> Logger {
         Logger {
-            file_path: String::from(DEFAULT_PATH),
-            next_log_id:    Arc::new(AtomicU32::new(0)),
-            logs:      Arc::new(Mutex::new(vec![])),
+            file_path:   String::from(DEFAULT_PATH),
+            next_log_id: Arc::new(AtomicU32::new(0)),
+            logs:        Arc::new(Mutex::new(vec![])),
+            signal:      Arc::new(AtomicU8::new(NoSignal.as_num())),
         }
     }
 }

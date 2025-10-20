@@ -5,7 +5,7 @@ use std::io::Error;
 use rdev::{Event, EventType, Key};
 
 use crate::listener::logic::hotkey::HotKey;
-use super::signals::Signals::{*};
+use super::signals::{Signals, Signals::*};
 use logger::Logger;
 
 mod hotkey;
@@ -19,12 +19,21 @@ pub struct Logic {
 
 impl Logic {
 // ##### PUBLIC AREA #####
+    pub fn shoutdown(&self) {
+        self.logger.shoutdown();
+        println!("[logic]: Logger shoutdown");
+    }
+
     // add key to the log list
     pub fn logger_start(&self) -> Result<String, Error> {
         return self.logger.start();
     }
 
     pub fn log_key(&self, event: Event) {
+
+        // !!!
+        // error: down't support no-English literals
+
         // get a pressed key name and after send it to the logger
         match event.event_type {
             EventType::KeyPress(key) => {
@@ -36,7 +45,7 @@ impl Logic {
     }
 
     // key printer
-    pub fn print_key_in_console(key: Option<String>) {
+    pub fn print_key_in_console(&self, key: Option<String>) {
         match key {
             Some(key) => println!("{}", key),
             None => (),
@@ -44,7 +53,7 @@ impl Logic {
     }
 
     // return a signal after process the event
-    pub fn process_event(event: EventType, signal_ptr: Arc<AtomicU8>) {
+    pub fn process_event(&self, event: EventType, signal_ptr: Arc<AtomicU8>) {
 
         // lamda func: check does the key is a hotkey component
         let as_hotkey_component = move |key: Key| -> HotKey {
@@ -64,27 +73,26 @@ impl Logic {
         // find event type
         match event {
             EventType::KeyPress(key) => {
-
                 let comp: HotKey = as_hotkey_component(key);
                 if comp != HotKey::NoComponent {
                     comp.press_key();
-                    
-                    // send 
-                    let signal_as_num = HotKey::get_hotkey_signal().as_num();
-                    signal_ptr.store(signal_as_num, Ordering::Relaxed);
+
+                    // send signal
+                    let new_signal = HotKey::get_hotkey_signal().as_num();
+                    signal_ptr.store(new_signal, Ordering::Relaxed);
                 }
             },
             EventType::KeyRelease(key) => {
                 let comp: HotKey = as_hotkey_component(key);
                 if comp != HotKey::NoComponent {
                     comp.release_key();
-                    
-                    // stop use hotkey
-                    signal_ptr.store(NoSignal.as_num(), Ordering::Relaxed);
                 }
             },
             _ => ()
         }
+
+        // PS: signal reset only after
+        // Listener::signal_analyzer processed it
     }
 
     // constructor
