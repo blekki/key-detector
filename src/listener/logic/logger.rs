@@ -28,31 +28,40 @@ impl Logger {
 
         // create a "log_writer" thread
         let _ = thread::spawn(move || {
-            loop {
-                thread::sleep(std::time::Duration::from_secs(3)); // wait until logs be more
 
-                // save logs in BufWritter as u8 (chars). It's saves to much time consuming
+            // lambda function
+            let mut save_logs_in_file = move || {
                 let mut guard = logs_ptr.lock().unwrap();
+
+                // process front log and after remove it from vector
                 for _ in 0..guard.len() {
+                    // save logs in BufWritter as u8 (chars). It saves a lot of time
                     let _ = writer.write_all(guard[0].as_bytes());
                     guard.remove(0);
                 }
-                let _ = writer.flush(); // write all in file
+
+                let _ = writer.flush(); // save buffer in file (saves logs)
                 println!("[logger] logs are saved");
+            };
+
+            // basic loop
+            loop {
+                thread::sleep(std::time::Duration::from_secs(3)); // wait until logs be more
+
+                save_logs_in_file();
 
                 // did signal to stop come
                 let ready_to_stop = {
                     signal_clone.load(Ordering::Acquire) == StopLogger.as_num()
                 };
                 if ready_to_stop {
-                    // todo: write other logs
+                    // save unsaved before logs
+                    save_logs_in_file();
+
                     println!("logger stopped");
                     signal_clone.store(LoggerReadyShoutdown.as_num(), Ordering::Release);
                     break;
                 }
-                // !!!
-                // todo: when system decided shutdown,
-                // this thread must save other logs and stop
             }
         });
     }
