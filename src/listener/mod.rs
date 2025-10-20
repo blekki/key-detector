@@ -20,20 +20,22 @@ impl Listener {
     fn run_signal_analyzer(&self) {
         // create ptr as canal between thread and class
 
-        let signal_ptr= self.signal.clone();
-        let logic_ptr= self.logic.clone();
+        let signal_ptr: Arc<AtomicU8> = self.signal.clone();
+        let logic_ptr: Arc<Logic>     = self.logic.clone();
 
         // create a "signal_analyzer" thread
         let _ = thread::spawn(move || {
             loop {
                 let signal_state = signal_ptr.load(Ordering::Acquire);
 
-                // Comment: Here better use if..else..if..else structure then match
+                // # Note:
+                // Here better use if..else..if..else structure,
+                // then match.
                 
                 if signal_state == NoSignal.as_num() {
                     // do nothing
                     continue;
-                } else if signal_state == ShouldStop.as_num() {
+                } else if signal_state == StopListener.as_num() {
                     // stop all internal systems
                     logic_ptr.shoutdown();
                     println!("[signal_analyzer]: Logic shoutdown");
@@ -59,7 +61,7 @@ impl Listener {
     }
 
     fn run_keyboard_listener(&self) {
-        let signal_ptr = Arc::clone(&self.signal);
+        let signal_ptr: Arc<AtomicU8> = self.signal.clone();
         
         // try to run logger
         let try_to_run = self.logic.logger_start();
@@ -73,12 +75,13 @@ impl Listener {
         }
 
         // create a "keyboard_listener" thread
-        let logic_ptr = Arc::clone(&self.logic);
+        let logic_ptr: Arc<Logic> = self.logic.clone();
         let _ = thread::spawn(move || {
             // rdevListen callback
             let callback = move |event: Event| {
-                // Comment: need to use clones, because the "Logic"
-                // uses the threads
+                // # Note: 
+                // Need to use clones, because the "Logic"
+                // uses the threads.
 
                 logic_ptr.log_key(
                     event.clone()
@@ -106,7 +109,7 @@ impl Listener {
     pub fn is_stop(&self) -> bool {
         let signal = self.signal.load(Ordering::Acquire);
         let systems_stopped = AllSystemsIsStopped.as_num(); // signal
-
+        
         return signal == systems_stopped;
     }
 

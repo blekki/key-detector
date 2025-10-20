@@ -5,7 +5,6 @@ use std::io::Error;
 use rdev::{Event, EventType, Key};
 
 use crate::listener::logic::hotkey::HotKey;
-use super::signals::{Signals, Signals::*};
 use logger::Logger;
 
 mod hotkey;
@@ -52,7 +51,7 @@ impl Logic {
         };
     }
 
-    // return a signal after process the event
+    // processes the keys state changes
     pub fn process_event(&self, event: EventType, signal_ptr: Arc<AtomicU8>) {
 
         // lamda func: check does the key is a hotkey component
@@ -91,17 +90,16 @@ impl Logic {
             _ => ()
         }
 
-        // PS: signal reset only after
-        // Listener::signal_analyzer processed it
+        // # Note: 
+        // Signal reset only after Listener::signal_analyzer
+        // processed it
+        
     }
 
     // constructor
     pub fn new() -> Logic {
-        // init all parameters
         Logic {
             logger: Logger::new()
         }
     }
-    
-    
 }

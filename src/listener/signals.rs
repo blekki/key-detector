@@ -1,16 +1,19 @@
 #[derive(Copy, Clone)]
 #[derive(PartialEq)]
 pub(crate) enum Signals {
+    // default
     NoSignal,
-
-    // ReadyToExit,
-    ShouldStop,
+    
+    // for the Listener
+    StopListener,
     AllSystemsIsStopped,
 
+    // for the Logger
     StopLogger,
     LoggerReadyShoutdown,
 
-    HelloWorld, // test signal
+    // test (debug) signal
+    HelloWorld,
 }
 
 impl Signals {

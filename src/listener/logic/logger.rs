@@ -15,13 +15,10 @@ pub struct Logger {
     file_path: String,
     next_log_id: Arc<AtomicU32>,
     logs: Arc<Mutex<Vec<String>>>,
-
     signal: Arc<AtomicU8>,
 }
 
 impl Logger {
-    // todo: need add comfortable interface for using logger
-
 // ##### PRIVATE AREA #####
     fn run_log_writter(&self, file: File) {
         let logs_ptr = self.logs.clone();
@@ -93,7 +90,7 @@ impl Logger {
         let mut log_line = String::new();
         log_line.extend(parts.iter().copied());
 
-        // save log
+        // save log in the temporary vector before it will be write in the file
         let mut guard =  self.logs.lock().unwrap();
         guard.push(log_line);
 

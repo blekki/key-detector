@@ -4,6 +4,12 @@ use super::super::signals::{Signals, Signals::*};
 // pressed keys combination
 static COMBINATION: AtomicU16 = AtomicU16::new(0x0);
 
+// hotkeys signature (example: 0x00100110)
+const _STOP_LISTENER: u16 = HotKey::Escape as u16;
+const _HELLO_WORLD: u16 = (HotKey::KeyQ as u16) | (HotKey::KeyC as u16);
+// todo: make special set list
+
+
 #[derive(Copy, Clone)]  // auto copy/clone
 #[derive(PartialEq)]    // != operator realization
 pub enum HotKey {
@@ -19,16 +25,11 @@ impl HotKey {
 // ##### PUBLIC AREA #####
     pub fn get_hotkey_signal() -> Signals {
         let copy = COMBINATION.load(Ordering::Acquire);
-        
-        // todo: make special set list
-        // ps: hk = hotkeys
-        const _SHOULD_STOP: u16 = HotKey::Escape as u16;
-        const _HELLO_WORLD: u16 = (HotKey::KeyQ as u16) | (HotKey::KeyC as u16);
 
         // checking
         let signal: Signals = match copy {
-            _SHOULD_STOP=> ShouldStop,
-            _HELLO_WORLD=> HelloWorld,
+            _STOP_LISTENER  => StopListener,
+            _HELLO_WORLD    => HelloWorld,
             _ => NoSignal
         };
 
@@ -36,16 +37,12 @@ impl HotKey {
     }
 
     pub fn press_key(&self) {
+        // add pressed key to the COMBINATION
         COMBINATION.fetch_or(*self as u16, Ordering::Release);
     }
 
     pub fn release_key(&self) {
+        // remove released key from the COMBINATION
         COMBINATION.fetch_xor(*self as u16, Ordering::Release);
-    }
-
-    // todo: remove or use as log and debug
-    pub fn print() {
-        let copy = COMBINATION.load(Ordering::Acquire); // use for higher safety
-        println!("combination: {:b}", copy);
     }
 }
