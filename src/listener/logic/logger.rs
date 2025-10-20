@@ -59,7 +59,7 @@ impl Logger {
                     save_logs_in_file();
 
                     println!("logger stopped");
-                    signal_clone.store(LoggerReadyShoutdown.as_num(), Ordering::Release);
+                    signal_clone.store(LoggerReadyShutdown.as_num(), Ordering::Release);
                     break;
                 }
             }
@@ -68,11 +68,11 @@ impl Logger {
 
 
 // ##### PUBLIC AREA #####
-    pub fn shoutdown(&self) {
+    pub fn shutdown(&self) {
         self.signal.store(StopLogger.as_num(), Ordering::Release);
         
         // wait until all processes stopped
-        while self.signal.load(Ordering::Acquire) != LoggerReadyShoutdown.as_num() {
+        while self.signal.load(Ordering::Acquire) != LoggerReadyShutdown.as_num() {
             println!("[logger]: waiting");
             thread::sleep(std::time::Duration::from_secs(1));
         }

@@ -10,7 +10,7 @@ pub(crate) enum Signals {
 
     // for the Logger
     StopLogger,
-    LoggerReadyShoutdown,
+    LoggerReadyShutdown,
 
     // test (debug) signal
     HelloWorld,

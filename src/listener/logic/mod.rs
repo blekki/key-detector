@@ -18,9 +18,9 @@ pub struct Logic {
 
 impl Logic {
 // ##### PUBLIC AREA #####
-    pub fn shoutdown(&self) {
-        self.logger.shoutdown();
-        println!("[logic]: Logger shoutdown");
+    pub fn shutdown(&self) {
+        self.logger.shutdown();
+        println!("[logic]: Logger shutdown");
     }
 
     // add key to the log list

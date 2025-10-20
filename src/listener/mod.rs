@@ -37,8 +37,8 @@ impl Listener {
                     continue;
                 } else if signal_state == StopListener.as_num() {
                     // stop all internal systems
-                    logic_ptr.shoutdown();
-                    println!("[signal_analyzer]: Logic shoutdown");
+                    logic_ptr.shutdown();
+                    println!("[signal_analyzer]: Logic shutdown");
 
                     break;
                 } else if signal_state == HelloWorld.as_num() {
