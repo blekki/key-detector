@@ -48,9 +48,10 @@ impl Logger {
             loop {
                 thread::sleep(std::time::Duration::from_secs(3)); // wait until logs be more
 
+                // # save logs in the file
                 save_logs_in_file();
 
-                // did signal to stop come
+                // check did signal to stop come
                 let ready_to_stop = {
                     signal_clone.load(Ordering::Acquire) == StopLogger.as_num()
                 };
@@ -58,14 +59,13 @@ impl Logger {
                     // save unsaved before logs
                     save_logs_in_file();
 
-                    println!("logger stopped");
+                    // send signal logger is ready shutdown
                     signal_clone.store(LoggerReadyShutdown.as_num(), Ordering::Release);
                     break;
                 }
             }
         });
     }
-
 
 // ##### PUBLIC AREA #####
     pub fn shutdown(&self) {
@@ -81,7 +81,7 @@ impl Logger {
     pub fn log_key(&self, key_name: &str) {
         // create log parts
         let time = prelude::Utc::now();
-        let formatted_time = time.format("[%H:%M:%S.%3f]: ").to_string();
+        let formatted_time = time.format("[%H:%M:%S:%3f]: ").to_string();
         let formatted_id = format!(
             "{}, ", self.next_log_id.load(Ordering::Acquire)
         );
@@ -99,7 +99,7 @@ impl Logger {
         let mut log_line = String::new();
         log_line.extend(parts.iter().copied());
 
-        // save log in the temporary vector before it will be write in the file
+        // save log in the temporary vector before it will be wrote in the file
         let mut guard =  self.logs.lock().unwrap();
         guard.push(log_line);
 
@@ -113,8 +113,7 @@ impl Logger {
         // if everything is ok, run logger
         match file {
             Ok(file) => {
-                // start write logs in the log-file
-                // (works such a thread)
+                // start write logs in the log-file (works such a thread)
                 self.run_log_writter(file);
 
                 // return msg "everything is ok"

@@ -27,13 +27,11 @@ impl Logic {
     pub fn logger_start(&self) -> Result<String, Error> {
         return self.logger.start();
     }
-
     pub fn log_key(&self, event: Event) {
-
         // !!!
-        // error: down't support no-English literals
+        // Dosn't support no-English literals.
+        // It prints only key name (as KeyA, Shift, Num1 etc.)
 
-        // get a pressed key name and after send it to the logger
         match event.event_type {
             EventType::KeyPress(key) => {
                 let key_name = format!("{:?}", key);

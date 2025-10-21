@@ -8,9 +8,8 @@ fn main() {
     // start listen a keyboard
     let listener = listener::Listener::new();
     
-    // check when the listener is ready to stop
     loop {
-
+        // check when the listener is ready to stop
         if listener.is_stop() {
             break;
         }
@@ -20,5 +19,5 @@ fn main() {
     }
     
     // final log msg
-    println!("[log]: programm success shutdown");
+    println!("[main]: programm success shutdown");
 }
