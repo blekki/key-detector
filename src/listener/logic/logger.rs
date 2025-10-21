@@ -41,7 +41,7 @@ impl Logger {
                 }
 
                 let _ = writer.flush(); // save buffer in file (saves logs)
-                println!("[logger] logs are saved");
+                println!("[logger]: logs are saved");
             };
 
             // basic loop
@@ -73,7 +73,7 @@ impl Logger {
         
         // wait until all processes stopped
         while self.signal.load(Ordering::Acquire) != LoggerReadyShutdown.as_num() {
-            println!("[logger]: waiting");
+            println!("[logger]: waiting (is saving logs)");
             thread::sleep(std::time::Duration::from_secs(1));
         }
     }

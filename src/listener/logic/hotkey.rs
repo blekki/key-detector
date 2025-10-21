@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicU16, Ordering};
+use std::{fmt::Error, sync::atomic::{AtomicU16, Ordering}};
 use super::super::signals::{Signals, Signals::*};
 
 // pressed keys combination
