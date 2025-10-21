@@ -24,6 +24,7 @@ impl Logger {
 // ##### PRIVATE AREA #####
     fn run_log_writter(&self, file: File) {
         let mut writer: BufWriter<File> = BufWriter::new(file);
+        let _ = writer.write_all("[HH:MM:SS.sss]: ID = -, 'KEY_NAME'\n".as_bytes()); // first log line
 
         // create a "log_writer" thread
         let logs_clone: Arc<Mutex<Vec<String>>> = self.logs.clone();
@@ -84,7 +85,7 @@ impl Logger {
         let time = prelude::Utc::now();
         let formatted_time = time.format("[%H:%M:%S:%3f]: ").to_string();
         let formatted_id = format!(
-            "{}, ", self.next_log_id.load(Ordering::Acquire)
+            "ID = {}, ", self.next_log_id.load(Ordering::Acquire)
         );
         let formatted_key = format!(
             "\'{}\'\n", key_name
