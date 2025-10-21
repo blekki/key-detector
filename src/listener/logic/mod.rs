@@ -42,6 +42,7 @@ impl Logic {
     pub fn logger_start(&self) -> Result<String, Error> {
         return self.logger.start();
     }
+    
     pub fn log_key(&self, event: Event) {
         // !!!
         // Dosn't support no-English literals.
@@ -65,7 +66,6 @@ impl Logic {
     }
 
     // processes the keys state changes
-    // pub fn process_event(&self, event: EventType, signal_ptr: Arc<AtomicU8>) {
     pub fn process_event(&self, event: EventType) {
 
         // lamda func: check does the key is a hotkey component
@@ -89,10 +89,7 @@ impl Logic {
                 let comp: HotKey = as_hotkey_component(key);
                 if comp != HotKey::NoComponent {
                     comp.press_key();
-                    // send signal
-                    // let signal_as_uint = HotKey::get_hotkey_signal().as_num();
-                    // signal_ptr.store(signal_as_uint, Ordering::Relaxed);
-
+                    // save signal
                     let signal_as_uint = HotKey::get_hotkey_signal().as_num();
                     self.set_signal_state(signal_as_uint);
                 }

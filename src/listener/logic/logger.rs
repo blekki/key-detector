@@ -6,9 +6,11 @@ use std::io::{BufWriter, Write, Error};
 
 use chrono::{*};
 
-use super::super::signals::Signals::{*};
-
+// constants
 const DEFAULT_PATH: &str = "src/logs/list.log";
+const RELAXED:       u8 = 0;
+const SHOULD_STOP:   u8 = 1;
+const READY_TO_STOP: u8 = 2;
 
 #[derive(Clone)]  // auto copy/clone
 pub struct Logger {
@@ -21,17 +23,16 @@ pub struct Logger {
 impl Logger {
 // ##### PRIVATE AREA #####
     fn run_log_writter(&self, file: File) {
-        let logs_ptr = self.logs.clone();
-        let mut writer = BufWriter::new(file);
-
-        let signal_clone = Arc::clone(&self.signal);
+        let mut writer: BufWriter<File> = BufWriter::new(file);
 
         // create a "log_writer" thread
+        let logs_clone: Arc<Mutex<Vec<String>>> = self.logs.clone();
+        let signal_clone: Arc<AtomicU8> = self.signal.clone();
         let _ = thread::spawn(move || {
 
             // lambda function
             let mut save_logs_in_file = move || {
-                let mut guard = logs_ptr.lock().unwrap();
+                let mut guard = logs_clone.lock().unwrap();
 
                 // process front log and after remove it from vector
                 for _ in 0..guard.len() {
@@ -53,14 +54,14 @@ impl Logger {
 
                 // check did signal to stop come
                 let ready_to_stop = {
-                    signal_clone.load(Ordering::Acquire) == StopLogger.as_num()
+                    signal_clone.load(Ordering::Acquire) == SHOULD_STOP
                 };
                 if ready_to_stop {
                     // save unsaved before logs
                     save_logs_in_file();
 
                     // send signal logger is ready shutdown
-                    signal_clone.store(LoggerReadyShutdown.as_num(), Ordering::Release);
+                    signal_clone.store(READY_TO_STOP, Ordering::Release);
                     break;
                 }
             }
@@ -69,10 +70,10 @@ impl Logger {
 
 // ##### PUBLIC AREA #####
     pub fn shutdown(&self) {
-        self.signal.store(StopLogger.as_num(), Ordering::Release);
+        self.signal.store(SHOULD_STOP, Ordering::Release);
         
         // wait until all processes stopped
-        while self.signal.load(Ordering::Acquire) != LoggerReadyShutdown.as_num() {
+        while self.signal.load(Ordering::Acquire) != READY_TO_STOP {
             println!("[logger]: waiting (is saving logs)");
             thread::sleep(std::time::Duration::from_secs(1));
         }
@@ -129,7 +130,7 @@ impl Logger {
             file_path:   String::from(DEFAULT_PATH),
             next_log_id: Arc::new(AtomicU32::new(0)),
             logs:        Arc::new(Mutex::new(vec![])),
-            signal:      Arc::new(AtomicU8::new(NoSignal.as_num())),
+            signal:      Arc::new(AtomicU8::new(RELAXED)),
         }
     }
 }

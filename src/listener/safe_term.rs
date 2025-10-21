@@ -14,10 +14,10 @@ impl SafeTerm {
 // ##### PRIVATE AREA #####
     fn init(&mut self) {
         
-        // ctrlc callback
-        let state_ptr = self.state.clone();
+        // core send signal to terminate program
+        let state_handle = self.state.clone();
         let callback = move || {
-            state_ptr.store(TERMINATING, Ordering::Release); // core send signal to terminate program
+            state_handle.store(TERMINATING, Ordering::Release);
         };
 
         // run handling core signal
@@ -29,7 +29,7 @@ impl SafeTerm {
 
 // ##### PUBLIC AREA #####
     pub fn has_stop_signal_arrived(&self) -> bool {
-        return self.state.load(Ordering::Acquire) == TERMINATING;
+        self.state.load(Ordering::Acquire) == TERMINATING
     }
 
     // constructor

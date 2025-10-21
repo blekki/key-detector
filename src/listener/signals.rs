@@ -3,14 +3,7 @@
 pub(crate) enum Signals {
     // default
     NoSignal,
-    
-    // for the Listener
     StopListener,
-    AllSystemsIsStopped,
-
-    // for the Logger
-    StopLogger,
-    LoggerReadyShutdown,
 
     // test (debug) signal
     HelloWorld,
