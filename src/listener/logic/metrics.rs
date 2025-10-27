@@ -73,7 +73,7 @@ impl Metrics {
         if number_str.is_none() {
             return Err(Error::new(
                 ErrorKind::InvalidData,
-                "Data is not exists"
+                "[matrics]: Incorrect data. Will be using default value"
             ));
         }
 
@@ -82,13 +82,13 @@ impl Metrics {
             Ok(value) => {
                 // save value
                 self.total_pressed.store(value, Ordering::Relaxed);
-                return Ok(String::from("Read total pressed"));
+                return Ok(String::from("[matrics]: Read total pressed"));
             },
             _ => {
                 // keed default value
                 return Err(Error::new(
                     ErrorKind::InvalidData,
-                    "Incorrect data"
+                    "[matrics]: Incorrect data. Will be using default value"
                 ));
             }
         }
@@ -108,14 +108,24 @@ impl Metrics {
             }
         }
 
-        return Ok(String::from("Data was correctly read"));
+        return Ok(String::from("[matrics]: Data was correctly read"));
+    }
+
+    fn set_ready_to_stop(&self) {
+        self.signal.store(READY_TO_STOP, Ordering::Release);
     }
 
 // ##### PUBLIC AREA #####
     pub fn shutdown(&self) {
+        // case: metrics is ready shoutdown, but "metric_writter" doesn't work
+        if self.signal.load(Ordering::Acquire) == READY_TO_STOP {
+            println!("[metrics]: Metrics shutdown");
+            return;
+        }
+
         // sent to the internal systems signal to stop their processes
         self.signal.store(SHOULD_STOP, Ordering::Release);
-
+        
         // wait until all processes stopped
         while self.signal.load(Ordering::Acquire) != READY_TO_STOP {
             println!("[metrics]: waiting (metric is saving)");
@@ -126,7 +136,7 @@ impl Metrics {
 
     pub fn update_metric(&self, _key_name: &str) {
         self.total_pressed.fetch_add(1, Ordering::Relaxed);
-
+        
         // # Note: 
         // calculation about get more metric can be placed:
         // >>> here
@@ -139,18 +149,24 @@ impl Metrics {
         let file_copy: File;    // this variable makes code more readble
         match source {
             Ok(file)  => file_copy = file,
-            Err(err) => return Err(err),
+            Err(err) => {
+                self.set_ready_to_stop();
+                return Err(err);
+            }
         };
 
         // run all iternal systems
+        // let msg = self.read_data(file_copy);
         match self.read_data(file_copy) {
             Ok(ok) => {
                 self.start_metric_writter();    // run metric writer
                 return Ok(ok);
             },
-            Err(err) => return Err(err),
+            Err(err) => {
+                self.set_ready_to_stop();
+                return Err(err);
+            }
         }
-
     }
 
     // constructor

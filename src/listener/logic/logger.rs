@@ -71,8 +71,19 @@ impl Logger {
         });
     }
 
+    fn set_ready_to_stop(&self) {
+        self.signal.store(READY_TO_STOP, Ordering::Release);
+    }
+
 // ##### PUBLIC AREA #####
     pub fn shutdown(&self) {
+        // case: logic is ready shoutdown, but "log_writter" doesn't work
+        if self.signal.load(Ordering::Acquire) == READY_TO_STOP {
+            println!("[logic]: Logger shutdown");
+            return;
+        }
+
+        // sent to the internal systems signal to stop their processes
         self.signal.store(SHOULD_STOP, Ordering::Release);
         
         // wait until all processes stopped
@@ -114,17 +125,19 @@ impl Logger {
 
     pub fn start(&self) -> Result<String, Error> {
         let file = File::create(self.file_path.clone());
-
+        // self.start_log_writter(file);
+        
         // if everything is ok, run logger
         match file {
             Ok(file) => {
                 // start write logs in the log-file (works such a thread)
                 self.start_log_writter(file);
-
-                // return msg "everything is ok"
                 return Ok(String::from("File is found"));
             },
-            Err(err) => return Err(err),
+            Err(err) => {
+                self.set_ready_to_stop();
+                return Err(err)
+            },
         };
     }
 

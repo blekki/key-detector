@@ -53,6 +53,7 @@ impl Listener {
                     continue;
                 }
                 if signal_copy == Shutdown.as_uint() {          // stop all internal systems
+                    println!("[signal_analyzer] shutdown signal has come");
                     break;
                 }
             }

@@ -40,16 +40,14 @@ impl Logic {
         self.metrics.shutdown();
     }
 
+    // ----- run internal sistems -----
     pub fn start_logger(&self) {
         // catch all errors if logger starts wrong
         match self.logger.start() {
             Ok(_) => (),
             Err(err) => {
-                println!("[logger]: {}", err);
-                self.signal_state.store(
-                    Shutdown.as_uint(), 
-                    Ordering::Release
-                );
+                println!("{}", err);
+                self.set_signal_state(Shutdown.as_uint());
             }
         }
     }
@@ -59,11 +57,12 @@ impl Logic {
         match self.metrics.start() {
             Ok(_) => (),
             Err(err) => {
-                println!("[matrics]: {}", err);
-                self.signal_state.store(Shutdown.as_uint(), Ordering::Release);
+                println!("{}", err);
+                self.set_signal_state(Shutdown.as_uint());
             }
         }
     }
+    // --------------------------------
 
     // add key to the log list    
     pub fn log_key(&self, event: Event) {
@@ -85,7 +84,6 @@ impl Logic {
         match event.event_type {
             EventType::KeyPress(key) => {
                 let key_name = format!("{:?}", key);
-
                 self.metrics.update_metric(key_name.as_str());
             }
             _ => () // do nothing
