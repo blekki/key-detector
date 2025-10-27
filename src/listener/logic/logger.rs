@@ -8,6 +8,7 @@ use chrono::{*};
 
 // constants
 const DEFAULT_PATH: &str = "src/logs/list.log";
+// Logger states
 const RELAXED:       u8 = 0;
 const SHOULD_STOP:   u8 = 1;
 const READY_TO_STOP: u8 = 2;
@@ -22,7 +23,7 @@ pub struct Logger {
 
 impl Logger {
 // ##### PRIVATE AREA #####
-    fn run_log_writter(&self, file: File) {
+    fn start_log_writter(&self, file: File) {
         let mut writer: BufWriter<File> = BufWriter::new(file);
         let _ = writer.write_all("[HH:MM:SS.sss]: ID = -, 'KEY_NAME'\n".as_bytes()); // first log line
 
@@ -79,6 +80,7 @@ impl Logger {
             println!("[logger]: waiting (logger is saving logs)");
             thread::sleep(std::time::Duration::from_secs(1));
         }
+        println!("[logic]: Logger shutdown");
     }
 
     pub fn log_key(&self, key_name: &str) {
@@ -117,7 +119,7 @@ impl Logger {
         match file {
             Ok(file) => {
                 // start write logs in the log-file (works such a thread)
-                self.run_log_writter(file);
+                self.start_log_writter(file);
 
                 // return msg "everything is ok"
                 return Ok(String::from("File is found"));

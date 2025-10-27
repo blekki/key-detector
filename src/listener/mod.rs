@@ -22,8 +22,9 @@ impl Listener {
 // ##### PRIVATE AREA #####
     fn run_signal_analyzer(&self) {
 
-        // run all internal services
+        // start all internal services
         self.logic.start_logger();
+        self.logic.start_metrics();
 
         // create Arc's as a canal between the thread and class
         let logic_handle: Arc<Logic> = self.logic.clone();
@@ -81,6 +82,9 @@ impl Listener {
                 );
                 logic_handle.process_event(
                     event.event_type.clone()
+                );
+                logic_handle.update_metric(
+                    event.clone()
                 );
             };
 

@@ -1,20 +1,23 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
-
 use rdev::{Event, EventType, Key};
+
+mod hotkey;
+mod logger;
+mod metrics;
 
 use super::signals::{Signals::*};
 use crate::listener::logic::hotkey::HotKey;
 use logger::Logger;
+use metrics::Metrics;
 
-mod hotkey;
-mod logger;
 
 
 #[derive(Clone)]  // auto copy/clone
 pub struct Logic {
     signal_state: Arc<AtomicU8>,
-    logger: Logger
+    logger: Logger,
+    metrics: Metrics
 }
 
 impl Logic {
@@ -34,7 +37,7 @@ impl Logic {
     
     pub fn shutdown(&self) {
         self.logger.shutdown();
-        println!("[logic]: Logger shutdown");
+        self.metrics.shutdown();
     }
 
     pub fn start_logger(&self) {
@@ -42,13 +45,23 @@ impl Logic {
         match self.logger.start() {
             Ok(_) => (),
             Err(err) => {
-                println!("{}", err);
+                println!("[logger]: {}", err);
                 self.signal_state.store(
                     Shutdown.as_uint(), 
                     Ordering::Release
                 );
-                return;
-            },
+            }
+        }
+    }
+
+    pub fn start_metrics(&self) {
+        // catch all errors if logger starts wrong
+        match self.metrics.start() {
+            Ok(_) => (),
+            Err(err) => {
+                println!("[matrics]: {}", err);
+                self.signal_state.store(Shutdown.as_uint(), Ordering::Release);
+            }
         }
     }
 
@@ -62,6 +75,18 @@ impl Logic {
             EventType::KeyPress(key) => {
                 let key_name = format!("{:?}", key);
                 self.logger.log_key(key_name.as_str());
+            }
+            _ => () // do nothing
+        }
+    }
+
+    // add key to the log list
+    pub fn update_metric(&self, event: Event) {
+        match event.event_type {
+            EventType::KeyPress(key) => {
+                let key_name = format!("{:?}", key);
+
+                self.metrics.update_metric(key_name.as_str());
             }
             _ => () // do nothing
         }
@@ -120,7 +145,8 @@ impl Logic {
     pub fn new() -> Logic {
         Logic {
             signal_state: Arc::new(AtomicU8::new(NoSignal.as_uint())),
-            logger: Logger::new()
+            logger: Logger::new(),
+            metrics: Metrics::new()
         }
     }
 }
