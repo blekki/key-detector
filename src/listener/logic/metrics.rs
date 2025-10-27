@@ -1,13 +1,7 @@
 use std::sync::atomic::{AtomicU8, AtomicU32, Ordering};
-use std::sync::{Arc};
-use std::{fs, thread};
-use std::fs::{File};
-use std::io::{BufReader, BufRead};
-use std::io::{Error, ErrorKind};
-
-// use rdev::{*};
-
-// use chrono::{*};
+use std::sync::Arc;
+use std::{thread, fs, fs::File};
+use std::io::{BufReader, BufRead, Error, ErrorKind};
 
 // constants
 const DEFAULT_PATH: &str = "src/data/stats.met";
@@ -21,11 +15,7 @@ const READY_TO_STOP: u8 = 2;
 pub struct Metrics {
     file_path: String,
     signal: Arc<AtomicU8>,
-
-    total_pressed: Arc<AtomicU32>,
-    // typing_speed
-    // sum_keyboard_activity
-    // favorite_key
+    total_pressed: Arc<AtomicU32>,  // metric parameter
 }
 
 impl Metrics {
@@ -42,24 +32,23 @@ impl Metrics {
             let save_metric_in_file = move || {
 
                 let formatted_total_pressed = format!(
-                    "{}: {}\n", MT_TOTAL_PRESSED, total_pressed_handle.load(Ordering::Acquire)
+                    "{}: {}\n",
+                    MT_TOTAL_PRESSED,
+                    total_pressed_handle.load(Ordering::Acquire)
                 );
 
-                let res = fs::write(
+                let _ = fs::write(
                     path_handle.clone(),
                     formatted_total_pressed
                 );
-
-                match res {
-                    Ok(_ok) => println!("[metrics]: metric is saved stats"),
-                    Err(_err) => println!("[error]: metric can't save stats"),
-                }
             };
 
             // basic loop
             loop {
-                thread::sleep(std::time::Duration::from_secs(3)); // wait until metric be more
-
+                // wait until metric be more
+                thread::sleep(std::time::Duration::from_secs(3));
+                
+                // save metric
                 save_metric_in_file();
 
                 // check did signal to stop come
@@ -76,9 +65,11 @@ impl Metrics {
         });
     }
 
-    fn store_total_pressed(&self, line: String) -> Result<String, Error> {
+    // get total pressed conut from string
+    fn read_total_pressed(&self, line: String) -> Result<String, Error> {
         let number_str = line.trim_start().split_whitespace().nth(1);
 
+        // check does data exist
         if number_str.is_none() {
             return Err(Error::new(
                 ErrorKind::InvalidData,
@@ -86,12 +77,15 @@ impl Metrics {
             ));
         }
 
+        // try to convert data into u32
         match number_str.unwrap().parse::<u32>() {
             Ok(value) => {
+                // save value
                 self.total_pressed.store(value, Ordering::Relaxed);
                 return Ok(String::from("Read total pressed"));
             },
             _ => {
+                // keed default value
                 return Err(Error::new(
                     ErrorKind::InvalidData,
                     "Incorrect data"
@@ -100,6 +94,7 @@ impl Metrics {
         }
     }
 
+    // read file for getting data
     fn read_data(&self, file: File) -> Result<String, Error> {
         let reader = BufReader::new(file);
 
@@ -108,7 +103,7 @@ impl Metrics {
             let line = line_result?;
 
             if line.starts_with(MT_TOTAL_PRESSED) {
-                let res = self.store_total_pressed(line);
+                let res = self.read_total_pressed(line);
                 if res.is_err() { return res; } // fast way stop process
             }
         }
@@ -118,10 +113,9 @@ impl Metrics {
 
 // ##### PUBLIC AREA #####
     pub fn shutdown(&self) {
-        // self.save_metric();
-        // println!("[metrics]: Metrics shutdown");
-
+        // sent to the internal systems signal to stop their processes
         self.signal.store(SHOULD_STOP, Ordering::Release);
+
         // wait until all processes stopped
         while self.signal.load(Ordering::Acquire) != READY_TO_STOP {
             println!("[metrics]: waiting (metric is saving)");
@@ -132,29 +126,17 @@ impl Metrics {
 
     pub fn update_metric(&self, _key_name: &str) {
         self.total_pressed.fetch_add(1, Ordering::Relaxed);
+
+        // # Note: 
+        // calculation about get more metric can be placed:
+        // >>> here
     }
-
-    // pub fn save_metric(&self) {
-    //     let formatted_total_pressed = format!(
-    //         "{}: {}\n", MT_TOTAL_PRESSED, self.total_pressed.load(Ordering::Acquire)
-    //     );
-
-    //     let res = fs::write(
-    //         self.file_path.clone(), 
-    //         formatted_total_pressed
-    //     );
-
-    //     match res {
-    //         Ok(_ok) => println!("[metrics]: metric is saved stats"),
-    //         Err(_err) => println!("[error]: metric can't save stats"),
-    //     }
-    // }
 
     pub fn start(&self) -> Result<String, Error> {
         let source = File::open(self.file_path.clone());
         
         // check does opening file finished success
-        let file_copy: File;    // this cariable make code simpler for reading
+        let file_copy: File;    // this variable makes code more readble
         match source {
             Ok(file)  => file_copy = file,
             Err(err) => return Err(err),
@@ -171,6 +153,7 @@ impl Metrics {
 
     }
 
+    // constructor
     pub fn new() -> Metrics {
         let metrics = Metrics {
             file_path:      String::from(DEFAULT_PATH),
