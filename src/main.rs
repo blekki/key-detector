@@ -2,11 +2,11 @@ use std::thread;
 use std::time;
 
 mod listener;
+use listener::{*};
 
 fn main() {
-    
     // start listen a keyboard
-    let listener = listener::Listener::new();
+    let listener = Listener::new();
     
     loop {
         // check when the listener is ready to stop

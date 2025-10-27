@@ -3,14 +3,14 @@
 pub(crate) enum Signals {
     // default
     NoSignal,
-    StopListener,
+    Shutdown,
 
     // test (debug) signal
-    HelloWorld,
+    PrintHelloWorld,
 }
 
 impl Signals {
-    pub fn as_num(&self) -> u8 {
+    pub fn as_uint(&self) -> u8 {
         return *self as u8;
     }
 }

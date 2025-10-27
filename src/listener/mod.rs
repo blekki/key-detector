@@ -21,6 +21,10 @@ pub struct Listener {
 impl Listener {
 // ##### PRIVATE AREA #####
     fn run_signal_analyzer(&self) {
+
+        // run all internal services
+        self.logic.start_logger();
+
         // create Arc's as a canal between the thread and class
         let logic_handle: Arc<Logic> = self.logic.clone();
         let safe_term_handle: Arc<SafeTerm> = self.safe_term.clone();
@@ -39,49 +43,36 @@ impl Listener {
                 signal_copy = logic_handle.get_signal_state();
                 
                 // process input signal
-                if signal_copy == NoSignal.as_num() { continue; } // do nothing
-                if signal_copy == StopListener.as_num() { // stop all internal systems
-                    // exit from a loop
-                    break;
+                if signal_copy == NoSignal.as_uint() {          // do nothing
+                    continue;
                 }
-                if signal_copy == HelloWorld.as_num() { // debug option
+                if signal_copy == PrintHelloWorld.as_uint() {   // debug option
                     println!("Hello World!!!");
                     logic_handle.reset_signal();
                     continue;
+                }
+                if signal_copy == Shutdown.as_uint() {          // stop all internal systems
+                    break;
                 }
             }
 
             // shoutdown all internal processes
             logic_handle.shutdown();
             println!("[signal_analyzer]: Logic shutdown");
+            
             // signal to the Listener, it can be completely stopped
-            ready_to_stop_handle.store(
-                true,
-                Ordering::Release
-            );
+            ready_to_stop_handle.store( true, Ordering::Release);
         });
     }
 
     fn run_keyboard_listener(&self) {
-        // try to run logger
-        let try_to_run = self.logic.logger_start();
-        // if something goes wrong, stop processes
-        match try_to_run {
-            Ok(_) => (),
-            Err(msg) => {
-                println!("{}", msg);
-                return;
-            },
-        }
-
         // create a "keyboard_listener" thread
         let logic_handle: Arc<Logic> = self.logic.clone();
         let _ = thread::spawn(move || {
             // rdevListen callback
             let callback = move |event: Event| {
                 // # Note: 
-                // Need to use clones, because the "Logic"
-                // uses the threads.
+                // Need to use clones, because the "Logic" uses the threads.
                 logic_handle.log_key(
                     event.clone()
                 );

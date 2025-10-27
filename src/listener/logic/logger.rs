@@ -27,13 +27,14 @@ impl Logger {
         let _ = writer.write_all("[HH:MM:SS.sss]: ID = -, 'KEY_NAME'\n".as_bytes()); // first log line
 
         // create a "log_writer" thread
-        let logs_clone: Arc<Mutex<Vec<String>>> = self.logs.clone();
-        let signal_clone: Arc<AtomicU8> = self.signal.clone();
+        let logs_handle: Arc<Mutex<Vec<String>>> = self.logs.clone();
+        let signal_handle: Arc<AtomicU8> = self.signal.clone();
+        // -
         let _ = thread::spawn(move || {
 
             // lambda function
             let mut save_logs_in_file = move || {
-                let mut guard = logs_clone.lock().unwrap();
+                let mut guard = logs_handle.lock().unwrap();
 
                 // process front log and after remove it from vector
                 for _ in 0..guard.len() {
@@ -55,14 +56,14 @@ impl Logger {
 
                 // check did signal to stop come
                 let ready_to_stop = {
-                    signal_clone.load(Ordering::Acquire) == SHOULD_STOP
+                    signal_handle.load(Ordering::Acquire) == SHOULD_STOP
                 };
                 if ready_to_stop {
                     // save unsaved before logs
                     save_logs_in_file();
 
                     // send signal logger is ready shutdown
-                    signal_clone.store(READY_TO_STOP, Ordering::Release);
+                    signal_handle.store(READY_TO_STOP, Ordering::Release);
                     break;
                 }
             }
@@ -75,7 +76,7 @@ impl Logger {
         
         // wait until all processes stopped
         while self.signal.load(Ordering::Acquire) != READY_TO_STOP {
-            println!("[logger]: waiting (is saving logs)");
+            println!("[logger]: waiting (logger is saving logs)");
             thread::sleep(std::time::Duration::from_secs(1));
         }
     }
@@ -119,7 +120,7 @@ impl Logger {
                 self.run_log_writter(file);
 
                 // return msg "everything is ok"
-                return Ok(String::from("File found"));
+                return Ok(String::from("File is found"));
             },
             Err(err) => return Err(err),
         };

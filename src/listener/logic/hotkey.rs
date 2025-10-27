@@ -5,14 +5,14 @@ use super::super::signals::{Signals, Signals::*};
 static COMBINATION: AtomicU16 = AtomicU16::new(0x0);
 
 // hotkeys signature (example: 0x00100110)
-const _STOP_LISTENER: u16 = HotKey::Escape as u16;
-const _HELLO_WORLD: u16 = (HotKey::KeyQ as u16) | (HotKey::KeyC as u16);
-// todo: make special set list
+const HK_SHUTDOWN: u16 = HotKey::Escape as u16;
+const HK_PRINT_HELLO_WORLD: u16 = (HotKey::KeyQ as u16) | (HotKey::KeyC as u16);
 
 
 #[derive(Copy, Clone)]  // auto copy/clone
 #[derive(PartialEq)]    // != operator realization
 pub enum HotKey {
+    // todo: rename HotKey into HotKeyComp
     NoComponent     = 0b0,
     Escape          = 0b1,
     ControlLeft     = 0b10,
@@ -28,8 +28,8 @@ impl HotKey {
 
         // checking
         let signal: Signals = match copy {
-            _STOP_LISTENER  => StopListener,
-            _HELLO_WORLD    => HelloWorld,
+            HK_SHUTDOWN  => Shutdown,
+            HK_PRINT_HELLO_WORLD    => PrintHelloWorld,
             _ => NoSignal
         };
 

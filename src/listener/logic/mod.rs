@@ -1,6 +1,5 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
-use std::io::Error;
 
 use rdev::{Event, EventType, Key};
 
@@ -26,11 +25,11 @@ impl Logic {
 
 // ##### PUBLIC AREA #####
     pub fn get_signal_state(&self) -> u8 {
-        self.signal_state.swap(NoSignal.as_num(),Ordering::Relaxed)
+        self.signal_state.swap(NoSignal.as_uint(),Ordering::Relaxed)
     }
 
     pub fn reset_signal(&self) {
-        self.signal_state.store(NoSignal.as_num(), Ordering::Relaxed);
+        self.signal_state.store(NoSignal.as_uint(), Ordering::Relaxed);
     }
     
     pub fn shutdown(&self) {
@@ -38,11 +37,22 @@ impl Logic {
         println!("[logic]: Logger shutdown");
     }
 
-    // add key to the log list
-    pub fn logger_start(&self) -> Result<String, Error> {
-        return self.logger.start();
+    pub fn start_logger(&self) {
+        // catch all errors if logger starts wrong
+        match self.logger.start() {
+            Ok(_) => (),
+            Err(err) => {
+                println!("{}", err);
+                self.signal_state.store(
+                    Shutdown.as_uint(), 
+                    Ordering::Release
+                );
+                return;
+            },
+        }
     }
-    
+
+    // add key to the log list    
     pub fn log_key(&self, event: Event) {
         // !!!
         // Dosn't support no-English literals.
@@ -70,17 +80,14 @@ impl Logic {
 
         // lamda func: check does the key is a hotkey component
         let as_hotkey_component = move |key: Key| -> HotKey {
-            let component: HotKey;
-            match key {
-                Key::Escape      => component = HotKey::Escape,
-                Key::ControlLeft => component = HotKey::ControlLeft,
-                Key::ShiftLeft   => component = HotKey::ShiftLeft,
-                Key::KeyQ        => component = HotKey::KeyQ,
-                Key::KeyC        => component = HotKey::KeyC,
-                // default
-                _ => component = HotKey::NoComponent,
-            }
-            return component;
+            return match key {
+                Key::Escape      => HotKey::Escape,
+                Key::ControlLeft => HotKey::ControlLeft,
+                Key::ShiftLeft   => HotKey::ShiftLeft,
+                Key::KeyQ        => HotKey::KeyQ,
+                Key::KeyC        => HotKey::KeyC,
+                _ => HotKey::NoComponent,
+            };
         };
 
         // find event type
@@ -90,8 +97,8 @@ impl Logic {
                 if comp != HotKey::NoComponent {
                     comp.press_key();
                     // save signal
-                    let signal_as_uint = HotKey::get_hotkey_signal().as_num();
-                    self.set_signal_state(signal_as_uint);
+                    let signal = HotKey::get_hotkey_signal().as_uint();
+                    self.set_signal_state(signal);
                 }
             },
             EventType::KeyRelease(key) => {
@@ -112,7 +119,7 @@ impl Logic {
     // constructor
     pub fn new() -> Logic {
         Logic {
-            signal_state: Arc::new(AtomicU8::new(NoSignal.as_num())),
+            signal_state: Arc::new(AtomicU8::new(NoSignal.as_uint())),
             logger: Logger::new()
         }
     }
